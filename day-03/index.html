@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Developer Profile - Responsive Design</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Sticky positioned header with typography and flexbox -->
+  <header class="site-header">
+    <div class="header-container">
+      <span class="badge">Day 3 Deliverable</span>
+      <h1 class="main-title">Developer Profile</h1>
+      <p class="subtitle">Responsive layout engineered with Flexbox & CSS Grid.</p>
+    </div>
+  </header>
+
+  <!-- Main container using CSS Grid -->
+  <main class="grid-layout">
+    
+    <!-- Profile Card (Flexbox & Box Model) -->
+    <section class="card profile-card">
+      <div class="avatar-wrapper">
+        <img class="avatar" src="https://avatars.githubusercontent.com/u/9919?s=200&v=4" alt="Profile Avatar" width="120" height="120">
+      </div>
+      <div class="profile-details">
+        <h2>About Me</h2>
+        <p>Full-stack developer intern building modular web applications with semantic structure and responsive layouts.</p>
+        <a class="profile-link" href="https://github.com/HamzaTahir-4859" target="_blank" rel="noopener noreferrer">View GitHub Profile &rarr;</a>
+      </div>
+    </section>
+
+    <!-- Core Skills (Flexbox badging & display) -->
+    <section class="card skills-card">
+      <h2>Core Skills</h2>
+      <ul class="skills-list">
+        <li class="skill-tag">HTML5</li>
+        <li class="skill-tag">CSS3 (Flexbox/Grid)</li>
+        <li class="skill-tag">JavaScript</li>
+        <li class="skill-tag">Node.js</li>
+        <li class="skill-tag">Git & GitHub</li>
+        <li class="skill-tag">Responsive Design</li>
+      </ul>
+    </section>
+
+    <!-- Education & Experience (Table styling & box model) -->
+    <section class="card table-card">
+      <h2>Education & Experience</h2>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Role / Degree</th>
+              <th>Institution</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Full-Stack Intern</td>
+              <td>Engineering Team</td>
+              <td><span class="status-pill active">Active</span></td>
+            </tr>
+            <tr>
+              <td>BS Computer Science</td>
+              <td>Forman Christian College</td>
+              <td><span class="status-pill completed">Completed</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Interactive Form (Flexbox, spacing, input states) -->
+    <section class="card form-card">
+      <h2>Contact / Update Profile</h2>
+      <form class="profile-form" action="#" method="post">
+        <div class="form-group">
+          <label for="fullName">Full Name</label>
+          <input type="text" id="fullName" name="fullName" placeholder="Enter your full name" required>
+        </div>
+
+        <div class="form-group">
+          <label for="userEmail">Email Address</label>
+          <input type="email" id="userEmail" name="userEmail" placeholder="hamza.t@kodextech.com" required>
+        </div>
+
+        <div class="form-group">
+          <label for="bio">Bio</label>
+          <textarea id="bio" name="bio" rows="3" placeholder="Tell us about yourself..."></textarea>
+        </div>
+
+        <div class="button-group">
+          <button type="submit" class="btn btn-primary">Submit Details</button>
+          <button type="reset" class="btn btn-secondary">Reset Form</button>
+        </div>
+      </form>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <p>&copy; 2026 Developer Portfolio &bull; Day 3 Responsive Design</p>
+  </footer>
+
+</body>
+</html>
