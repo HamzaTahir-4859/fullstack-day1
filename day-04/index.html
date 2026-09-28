@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Developer Profile - Interactive JavaScript</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Header with Theme Toggle Button -->
+  <header class="site-header">
+    <div class="header-container">
+      <div class="header-top">
+        <span class="badge">Day 4 Deliverable</span>
+        <button id="themeToggleBtn" class="btn btn-outline" type="button">🌙 Dark Mode</button>
+      </div>
+      <h1 class="main-title" id="profileName">Developer Profile</h1>
+      <p class="subtitle" id="profileRole">Interactive features powered by Vanilla JavaScript.</p>
+    </div>
+  </header>
+
+  <main class="grid-layout">
+    
+    <!-- Profile Card (DOM target for dynamic data) -->
+    <section class="card profile-card">
+      <div class="avatar-wrapper">
+        <img class="avatar" src="https://avatars.githubusercontent.com/u/9919?s=200&v=4" alt="Profile Avatar" width="120" height="120">
+      </div>
+      <div class="profile-details">
+        <h2>About Me</h2>
+        <p id="profileBio">Full-stack developer intern exploring JavaScript, DOM manipulation, and asynchronous workflows.</p>
+        <p><strong>Status: </strong><span id="availabilityBadge" class="status-pill active">Available for projects</span></p>
+        <a class="profile-link" href="https://github.com/HamzaTahir-4859" target="_blank" rel="noopener noreferrer">View GitHub Profile &rarr;</a>
+      </div>
+    </section>
+
+    <!-- Interactive Skills Section (Array methods, loops, DOM insertion) -->
+    <section class="card skills-card">
+      <h2>Core Skills (<span id="skillCount">0</span>)</h2>
+      
+      <!-- Input to dynamically add new skill via JS -->
+      <div class="skill-input-wrapper">
+        <input type="text" id="newSkillInput" placeholder="Add a new skill (e.g. TypeScript)">
+        <button id="addSkillBtn" class="btn btn-primary" type="button">Add Skill</button>
+      </div>
+
+      <ul class="skills-list" id="skillsList">
+        <!-- Rendered dynamically by JavaScript -->
+      </ul>
+    </section>
+
+    <!-- Education & Experience Table -->
+    <section class="card table-card">
+      <h2>Education & Experience</h2>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Role / Degree</th>
+              <th>Institution</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="experienceTableBody">
+            <!-- Dynamically populated from JS array of objects -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Interactive Form with Validation & Feedback -->
+    <section class="card form-card">
+      <h2>Contact / Update Profile</h2>
+      <form class="profile-form" id="updateProfileForm">
+        <div class="form-group">
+          <label for="fullName">Full Name</label>
+          <input type="text" id="fullName" name="fullName" placeholder="Enter updated name" required>
+        </div>
+
+        <div class="form-group">
+          <label for="userEmail">Email Address</label>
+          <input type="email" id="userEmail" name="userEmail" placeholder="hamza.t@kodextech.com" required>
+        </div>
+
+        <div class="form-group">
+          <label for="bio">Bio</label>
+          <textarea id="bio" name="bio" rows="3" placeholder="Enter a new short bio..." required></textarea>
+        </div>
+
+        <div class="button-group">
+          <button type="submit" class="btn btn-primary">Update Profile</button>
+          <button type="reset" class="btn btn-secondary">Reset</button>
+        </div>
+
+        <!-- Success/Error alert box -->
+        <div id="formMessage" class="form-message" style="display: none;"></div>
+      </form>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <p>&copy; 2026 Developer Portfolio &bull; Day 4 JavaScript Interactivity</p>
+  </footer>
+
+  <!-- Connect JavaScript file -->
+  <script src="script.js"></script>
+</body>
+</html>
