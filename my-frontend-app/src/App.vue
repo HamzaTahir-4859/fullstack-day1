@@ -30,7 +30,7 @@ const userName = 'Hamza'
       <button 
         @click="tasks = 0" 
         style="padding: 8px 16px; cursor: pointer; border-radius: 4px; border: 1px solid #ccc;"
-      >
+      > 
         Reset
       </button>
     </div>
