@@ -5,29 +5,38 @@ import TaskList from './components/TaskList';
 import './App.css';
 
 function App() {
-  const [tasks, setTasks] = useState([]);
+  // 1. Pre-populated tasks so the dashboard isn't empty
+  const [tasks, setTasks] = useState([
+    { id: 1, text: 'Review React state and props', completed: true },
+    { id: 2, text: 'Push Day 10 dashboard to GitHub', completed: false },
+    { id: 3, text: 'Prepare for backend API integration', completed: false }
+  ]);
+  
   const [searchQuery, setSearchQuery] = useState('');
-  const [filter, setFilter] = useState('all'); // 'all', 'pending', or 'completed'
+  const [filter, setFilter] = useState('all');
 
-  // Add a new task
+  // 2. Generate a formatted dynamic date (e.g., "Friday, October 2")
+  const today = new Date().toLocaleDateString('en-US', { 
+    weekday: 'long', 
+    month: 'long', 
+    day: 'numeric' 
+  });
+
   const addTask = (text) => {
     const newTask = { id: Date.now(), text, completed: false };
     setTasks([...tasks, newTask]);
   };
 
-  // Toggle completion status
   const toggleTask = (id) => {
     setTasks(tasks.map(task => 
       task.id === id ? { ...task, completed: !task.completed } : task
     ));
   };
 
-  // Delete a task
   const deleteTask = (id) => {
     setTasks(tasks.filter(task => task.id !== id));
   };
 
-  // Filter and search logic applied before rendering
   const filteredTasks = tasks.filter(task => {
     const matchesSearch = task.text.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesFilter = 
@@ -38,9 +47,22 @@ function App() {
     return matchesSearch && matchesFilter;
   });
 
+  // Calculate pending tasks for the new stat badge
+  const pendingCount = tasks.filter(task => !task.completed).length;
+
   return (
     <div className="app-container">
-      <h1>Task Dashboard</h1>
+      {/* 3. New Dashboard Header */}
+      <header className="dashboard-header">
+        <div>
+          <h1>Task Dashboard</h1>
+          <p className="date-display">{today}</p>
+        </div>
+        <div className="task-stats">
+          <span>{pendingCount} {pendingCount === 1 ? 'task' : 'tasks'} pending</span>
+        </div>
+      </header>
+
       <TaskForm onAdd={addTask} />
       <FilterBar 
         search={searchQuery} 
