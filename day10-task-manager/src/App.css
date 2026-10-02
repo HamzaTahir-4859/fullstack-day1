@@ -28,19 +28,20 @@ body {
   min-height: 100vh;
   display: flex;
   justify-content: center;
-  padding: 4rem 1rem;
+  padding: 0; /* Removed padding to allow edge-to-edge stretching */
   color: var(--text-main);
   -webkit-font-smoothing: antialiased;
 }
 
 .app-container {
   width: 100%;
-  max-width: 640px;
+  max-width: 100%; /* Stretches across the full screen width */
+  min-height: 100vh; /* Ensures the container covers the full screen height */
   background: var(--card-bg);
-  padding: 2.5rem;
-  border-radius: 20px;
+  padding: 2.5rem 5%; /* Adjusted padding for wide screens */
+  border-radius: 0; /* Removed rounded corners to fit screen edges perfectly */
   box-shadow: 0 20px 40px -15px rgba(139, 92, 246, 0.15), 0 10px 15px -5px rgba(0, 0, 0, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.8);
+  border: none; /* Removed the outer border */
 }
 
 /* --- Dashboard Header --- */
