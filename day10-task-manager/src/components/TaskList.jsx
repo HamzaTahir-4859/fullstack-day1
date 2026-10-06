@@ -1,5 +1,4 @@
 export default function TaskList({ tasks, onToggle, onDelete }) {
-  // Empty State
   if (tasks.length === 0) {
     return <p className="empty-state">No tasks found. You're all caught up!</p>;
   }
@@ -14,7 +13,17 @@ export default function TaskList({ tasks, onToggle, onDelete }) {
               checked={task.completed} 
               onChange={() => onToggle(task.id)} 
             />
-            <span>{task.text}</span>
+            <div className="task-text-wrapper">
+              <span className="task-title">{task.text}</span>
+              
+              {task.description && (
+                <p className="task-description">{task.description}</p>
+              )}
+              
+              {task.completed && task.completedAt && (
+                <span className="timestamp">Completed at {task.completedAt}</span>
+              )}
+            </div>
           </label>
           <button onClick={() => onDelete(task.id)} className="delete-btn">Delete</button>
         </li>

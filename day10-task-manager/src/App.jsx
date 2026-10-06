@@ -1,36 +1,73 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { taskService } from './api/taskService';
+import LoginPage from './components/LoginPage';
 import TaskForm from './components/TaskForm';
 import FilterBar from './components/FilterBar';
 import TaskList from './components/TaskList';
 import './App.css';
 
 function App() {
-  // 1. Pre-populated tasks so the dashboard isn't empty
-  const [tasks, setTasks] = useState([
-    { id: 1, text: 'Review React state and props', completed: true },
-    { id: 2, text: 'Push Day 10 dashboard to GitHub', completed: false },
-    { id: 3, text: 'Prepare for backend API integration', completed: false }
-  ]);
-  
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState('all');
 
-  // 2. Generate a formatted dynamic date (e.g., "Friday, October 2")
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const fetchAPI = async () => {
+      try {
+        const data = await taskService.getTasks();
+        const formattedTasks = data.map(task => ({
+          id: task.id,
+          text: task.title,
+          description: task.description || '', // Safe fallback if API lacks description
+          completed: task.completed,
+          completedAt: null
+        }));
+        setTasks(formattedTasks);
+      } catch (error) {
+        console.error("Error loading dashboard data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchAPI();
+  }, [isAuthenticated]);
+
   const today = new Date().toLocaleDateString('en-US', { 
     weekday: 'long', 
     month: 'long', 
     day: 'numeric' 
   });
 
-  const addTask = (text) => {
-    const newTask = { id: Date.now(), text, completed: false };
+  const addTask = (text, description) => {
+    const newTask = { 
+      id: Date.now(), 
+      text, 
+      description,
+      completed: false, 
+      completedAt: null 
+    };
     setTasks([...tasks, newTask]);
   };
 
   const toggleTask = (id) => {
-    setTasks(tasks.map(task => 
-      task.id === id ? { ...task, completed: !task.completed } : task
-    ));
+    setTasks(tasks.map(task => {
+      if (task.id === id) {
+        const isNowCompleted = !task.completed;
+        return { 
+          ...task, 
+          completed: isNowCompleted,
+          completedAt: isNowCompleted 
+            ? new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) 
+            : null
+        };
+      }
+      return task;
+    }));
   };
 
   const deleteTask = (id) => {
@@ -47,12 +84,14 @@ function App() {
     return matchesSearch && matchesFilter;
   });
 
-  // Calculate pending tasks for the new stat badge
   const pendingCount = tasks.filter(task => !task.completed).length;
+
+  if (!isAuthenticated) {
+    return <LoginPage onLogin={() => setIsAuthenticated(true)} />;
+  }
 
   return (
     <div className="app-container">
-      {/* 3. New Dashboard Header */}
       <header className="dashboard-header">
         <div>
           <h1>Task Dashboard</h1>
@@ -70,11 +109,18 @@ function App() {
         filter={filter} 
         onFilterChange={setFilter} 
       />
-      <TaskList 
-        tasks={filteredTasks} 
-        onToggle={toggleTask} 
-        onDelete={deleteTask} 
-      />
+      
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '2rem', color: '#666', fontWeight: '500' }}>
+          Loading tasks from API...
+        </div>
+      ) : (
+        <TaskList 
+          tasks={filteredTasks} 
+          onToggle={toggleTask} 
+          onDelete={deleteTask} 
+        />
+      )}
     </div>
   );
 }

@@ -2,33 +2,41 @@ import { useState } from 'react';
 
 export default function TaskForm({ onAdd }) {
   const [text, setText] = useState('');
+  const [description, setDescription] = useState('');
   const [error, setError] = useState('');
 
   const handleSubmit = (e) => {
-    e.preventDefault(); // Prevents page reload
-    
-    // Validation
+    e.preventDefault();
     if (text.trim().length < 3) {
-      setError('Task must be at least 3 characters long.');
+      setError('Task title must be at least 3 characters long.');
       return;
     }
-
-    onAdd(text.trim());
-    setText(''); // Reset input
-    setError(''); // Clear error
+    // Pass both text and description to the parent
+    onAdd(text, description);
+    
+    // Reset fields
+    setText('');
+    setDescription('');
+    setError('');
   };
 
   return (
     <form onSubmit={handleSubmit} className="task-form">
-      <div className="input-group">
-        <input 
-          type="text" 
-          placeholder="Add a new task..." 
-          value={text} 
-          onChange={(e) => setText(e.target.value)} 
-        />
-        <button type="submit">Add Task</button>
-      </div>
+      <input 
+        type="text" 
+        placeholder="Add a new task title..." 
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        className="task-input"
+      />
+      <textarea 
+        placeholder="Add a task description (optional)..." 
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        className="task-textarea"
+        rows="2"
+      ></textarea>
+      <button type="submit">Add Task</button>
       {error && <p className="error-msg">{error}</p>}
     </form>
   );
