@@ -3,6 +3,7 @@ import { useState } from 'react';
 export default function TaskForm({ onAdd }) {
   const [text, setText] = useState('');
   const [description, setDescription] = useState('');
+  const [dueDate, setDueDate] = useState(''); // New state for time limit
   const [error, setError] = useState('');
 
   const handleSubmit = (e) => {
@@ -11,12 +12,13 @@ export default function TaskForm({ onAdd }) {
       setError('Task title must be at least 3 characters long.');
       return;
     }
-    // Pass both text and description to the parent
-    onAdd(text, description);
+    // Pass dueDate along with text and description
+    onAdd(text, description, dueDate);
     
-    // Reset fields
+    // Reset all fields
     setText('');
     setDescription('');
+    setDueDate('');
     setError('');
   };
 
@@ -36,6 +38,15 @@ export default function TaskForm({ onAdd }) {
         className="task-textarea"
         rows="2"
       ></textarea>
+      
+      {/* New Due Date Input */}
+      <input 
+        type="datetime-local" 
+        value={dueDate}
+        onChange={(e) => setDueDate(e.target.value)}
+        className="task-input"
+      />
+      
       <button type="submit">Add Task</button>
       {error && <p className="error-msg">{error}</p>}
     </form>

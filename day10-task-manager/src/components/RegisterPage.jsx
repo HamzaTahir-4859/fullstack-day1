@@ -1,21 +1,22 @@
 import { useState } from 'react';
 
-export default function LoginPage({ onLogin, onSwitchToRegister }) {
+export default function RegisterPage({ onRegister, onSwitchToLogin }) {
   const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (username.trim() && password.trim()) {
-      onLogin(username);
+    if (username.trim() && email.trim() && password.trim()) {
+      onRegister(username);
     }
   };
 
   return (
     <div className="login-wrapper">
       <div className="login-box">
-        <h1>Welcome Back</h1>
-        <p>Sign in to access your Task Dashboard</p>
+        <h1>Create Account</h1>
+        <p>Sign up to start managing your tasks</p>
         <form onSubmit={handleSubmit} className="login-form">
           <input 
             type="text" 
@@ -25,16 +26,23 @@ export default function LoginPage({ onLogin, onSwitchToRegister }) {
             required
           />
           <input 
+            type="email" 
+            placeholder="Email Address" 
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <input 
             type="password" 
             placeholder="Password" 
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
           />
-          <button type="submit">Sign In</button>
+          <button type="submit">Sign Up</button>
         </form>
         <p className="auth-switch">
-          Need an account? <span onClick={onSwitchToRegister}>Create one</span>
+          Already have an account? <span onClick={onSwitchToLogin}>Sign In</span>
         </p>
       </div>
     </div>

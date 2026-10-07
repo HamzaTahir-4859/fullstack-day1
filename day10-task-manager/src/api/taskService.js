@@ -1,25 +1,28 @@
-import apiClient from './apiClient';
+import axios from 'axios';
+
+const BASE_URL = 'https://jsonplaceholder.typicode.com/todos';
 
 export const taskService = {
-  // GET request with query parameters and response handling
+  // Read (GET) - Fetches the initial 5 tasks
   getTasks: async () => {
-    try {
-      const response = await apiClient.get('/todos?_limit=5'); 
-      return response.data;
-    } catch (error) {
-      console.error('Failed to fetch tasks:', error);
-      throw error;
-    }
+    const response = await axios.get(`${BASE_URL}?_limit=5`);
+    return response.data;
   },
-
-  // POST request passing a request body
-  createTask: async (taskData) => {
-    try {
-      const response = await apiClient.post('/todos', taskData);
-      return response.data;
-    } catch (error) {
-      console.error('Failed to create task:', error);
-      throw error;
-    }
+  
+  // Create (POST) - Adds a new task to the server
+  addTask: async (taskData) => {
+    const response = await axios.post(BASE_URL, taskData);
+    return response.data;
+  },
+  
+  // Update (PATCH) - Modifies an existing task (like toggling completion)
+  updateTask: async (id, updates) => {
+    const response = await axios.patch(`${BASE_URL}/${id}`, updates);
+    return response.data;
+  },
+  
+  // Delete (DELETE) - Removes a task from the server
+  deleteTask: async (id) => {
+    await axios.delete(`${BASE_URL}/${id}`);
   }
 };

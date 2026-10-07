@@ -20,6 +20,15 @@ export default function TaskList({ tasks, onToggle, onDelete }) {
                 <p className="task-description">{task.description}</p>
               )}
               
+              {/* Display the due date if one was selected */}
+              {task.dueDate && !task.completed && (
+                <p className="task-due-date">
+                  🗓️ Due: {new Date(task.dueDate).toLocaleString('en-US', {
+                    month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+                  })}
+                </p>
+              )}
+
               {task.completed && task.completedAt && (
                 <span className="timestamp">Completed at {task.completedAt}</span>
               )}
