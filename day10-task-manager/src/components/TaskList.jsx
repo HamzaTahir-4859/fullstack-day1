@@ -20,13 +20,20 @@ export default function TaskList({ tasks, onToggle, onDelete }) {
                 <p className="task-description">{task.description}</p>
               )}
               
-              {/* Display the due date if one was selected */}
+              {/* Display the due date with time pushed to the right */}
               {task.dueDate && !task.completed && (
-                <p className="task-due-date">
-                  🗓️ Due: {new Date(task.dueDate).toLocaleString('en-US', {
-                    month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
-                  })}
-                </p>
+                <div className="task-due-date">
+                  <span>
+                    🗓️ Due: {new Date(task.dueDate).toLocaleDateString('en-US', {
+                      month: 'short', day: 'numeric'
+                    })}
+                  </span>
+                  <span className="due-time">
+                    {new Date(task.dueDate).toLocaleTimeString('en-US', {
+                      hour: 'numeric', minute: '2-digit'
+                    })}
+                  </span>
+                </div>
               )}
 
               {task.completed && task.completedAt && (

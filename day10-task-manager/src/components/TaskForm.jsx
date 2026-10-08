@@ -3,8 +3,15 @@ import { useState } from 'react';
 export default function TaskForm({ onAdd }) {
   const [text, setText] = useState('');
   const [description, setDescription] = useState('');
-  const [dueDate, setDueDate] = useState(''); // New state for time limit
+  const [dueDate, setDueDate] = useState('');
   const [error, setError] = useState('');
+
+  // Helper to get the current local time in YYYY-MM-DDTHH:MM format for the 'min' attribute
+  const getCurrentDateTime = () => {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    return now.toISOString().slice(0, 16);
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -12,10 +19,9 @@ export default function TaskForm({ onAdd }) {
       setError('Task title must be at least 3 characters long.');
       return;
     }
-    // Pass dueDate along with text and description
+    
     onAdd(text, description, dueDate);
     
-    // Reset all fields
     setText('');
     setDescription('');
     setDueDate('');
@@ -31,6 +37,7 @@ export default function TaskForm({ onAdd }) {
         onChange={(e) => setText(e.target.value)}
         className="task-input"
       />
+      
       <textarea 
         placeholder="Add a task description (optional)..." 
         value={description}
@@ -39,13 +46,17 @@ export default function TaskForm({ onAdd }) {
         rows="2"
       ></textarea>
       
-      {/* New Due Date Input */}
-      <input 
-        type="datetime-local" 
-        value={dueDate}
-        onChange={(e) => setDueDate(e.target.value)}
-        className="task-input"
-      />
+      {/* Upgraded Date Input Wrapper */}
+      <div className="date-input-wrapper">
+        <span className="calendar-icon">📅</span>
+        <input 
+          type="datetime-local" 
+          value={dueDate}
+          onChange={(e) => setDueDate(e.target.value)}
+          min={getCurrentDateTime()} 
+          className="task-input date-input"
+        />
+      </div>
       
       <button type="submit">Add Task</button>
       {error && <p className="error-msg">{error}</p>}
