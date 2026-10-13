@@ -1,10 +1,16 @@
+import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { AppModule, ObserveInstrument } from './app.module';
+import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
-    instrument: ObserveInstrument,
-  });
-  await app.listen(process.env.PORT ?? 3000);
+  // Clean initialization with no telemetry tracking
+  const app = await NestFactory.create(AppModule);
+  
+  // Enforce DTO validation across all routes
+  app.useGlobalPipes(new ValidationPipe({
+    whitelist: true, // Automatically strips out any extra fields the user sends that aren't in your DTO
+  }));
+  
+  await app.listen(3000);
 }
 bootstrap();
