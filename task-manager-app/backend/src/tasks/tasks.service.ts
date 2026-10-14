@@ -1,56 +1,68 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 
-// Define the shape of a Task so TypeScript knows what is allowed in the array
 export interface Task {
   id: string;
   title: string;
   description?: string;
-  status: string;
 }
 
 @Injectable()
 export class TasksService {
-  // Explicitly type the array to hold Task objects
-  private tasks: Task[] = [];
+  private readonly logger = new Logger(TasksService.name);
+  private tasks: Task[] = []; 
 
-  // Create
   create(createTaskDto: CreateTaskDto) {
+    this.logger.log(`Creating new task: ${createTaskDto.title}`);
     const newTask: Task = {
       id: Date.now().toString(),
       ...createTaskDto,
-      status: 'OPEN',
     };
     this.tasks.push(newTask);
     return newTask;
   }
 
-  // Read (All)
   findAll() {
+    this.logger.log('Fetching all tasks');
     return this.tasks;
   }
 
-  // Read (One by ID)
   findOne(id: string) {
+    this.logger.log(`Fetching task with ID: ${id}`);
     const task = this.tasks.find((t) => t.id === id);
+
     if (!task) {
+      this.logger.warn(`Task not found: ID ${id}`);
       throw new NotFoundException(`Task with ID ${id} not found`);
     }
     return task;
   }
 
-  // Update
   update(id: string, updateTaskDto: UpdateTaskDto) {
-    const task = this.findOne(id);
-    Object.assign(task, updateTaskDto);
-    return task;
+    this.logger.log(`Updating task with ID: ${id}`);
+    const taskIndex = this.tasks.findIndex((t) => t.id === id);
+
+    if (taskIndex === -1) {
+      this.logger.warn(`Cannot update. Task ID ${id} not found`);
+      throw new NotFoundException(`Task with ID ${id} not found`);
+    }
+
+    const updatedTask = { ...this.tasks[taskIndex], ...updateTaskDto };
+    this.tasks[taskIndex] = updatedTask;
+    return updatedTask;
   }
 
-  // Delete
   remove(id: string) {
-    this.findOne(id); 
-    this.tasks = this.tasks.filter((t) => t.id !== id);
-    return { message: `Task ${id} successfully deleted` };
+    this.logger.log(`Deleting task with ID: ${id}`);
+    const taskIndex = this.tasks.findIndex((t) => t.id === id);
+
+    if (taskIndex === -1) {
+      this.logger.error(`Delete failed. Task ID ${id} missing`);
+      throw new NotFoundException(`Task with ID ${id} not found`);
+    }
+
+    const deletedTask = this.tasks.splice(taskIndex, 1);
+    return deletedTask[0];
   }
 }
