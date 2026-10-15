@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, HttpStatus, Logger } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  HttpCode,
+  HttpStatus,
+  Logger,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
@@ -23,20 +35,23 @@ export class TasksController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id', ParseIntPipe) id: number) {
     this.logger.log(`GET /tasks/${id}`);
     return this.tasksService.findOne(id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateTaskDto: UpdateTaskDto) {
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateTaskDto: UpdateTaskDto,
+  ) {
     this.logger.log(`PATCH /tasks/${id}`);
     return this.tasksService.update(id, updateTaskDto);
   }
 
   @Delete(':id')
-  @HttpCode(HttpStatus.NO_CONTENT) 
-  remove(@Param('id') id: string) {
+  @HttpCode(HttpStatus.NO_CONTENT)
+  remove(@Param('id', ParseIntPipe) id: number) {
     this.logger.log(`DELETE /tasks/${id}`);
     return this.tasksService.remove(id);
   }

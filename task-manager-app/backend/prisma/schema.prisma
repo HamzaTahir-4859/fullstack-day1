@@ -1,0 +1,26 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Category {
+  id    Int    @id @default(autoincrement())
+  name  String @unique // Enforces data integrity (no duplicate category names)
+  tasks Task[]         // One-to-Many relationship: A category can have many tasks
+}
+
+model Task {
+  id          Int       @id @default(autoincrement())
+  title       String
+  description String?
+  status      String    @default("pending")
+  createdAt   DateTime  @default(now())
+  
+  // Foreign Key & Relation
+  categoryId  Int?
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+}
