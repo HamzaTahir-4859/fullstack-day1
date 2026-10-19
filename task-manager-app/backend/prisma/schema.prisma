@@ -7,10 +7,19 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  role      String   @default("user") // Ready for Day 28 Authorization
+  createdAt DateTime @default(now())
+  tasks     Task[]   // One user can have many tasks
+}
+
 model Category {
   id    Int    @id @default(autoincrement())
-  name  String @unique // Enforces data integrity (no duplicate category names)
-  tasks Task[]         // One-to-Many relationship: A category can have many tasks
+  name  String @unique
+  tasks Task[]
 }
 
 model Task {
@@ -20,7 +29,9 @@ model Task {
   status      String    @default("pending")
   createdAt   DateTime  @default(now())
   
-  // Foreign Key & Relation
   categoryId  Int?
   category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  userId      Int?
+  user        User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

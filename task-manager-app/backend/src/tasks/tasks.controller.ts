@@ -10,11 +10,14 @@ import {
   HttpStatus,
   Logger,
   ParseIntPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
+import { AuthGuard } from '../auth/auth.guard';
 
+@UseGuards(AuthGuard) // <-- LOCKS DOWN ALL TASK ROUTES (Day 27 Protected API)
 @Controller('tasks')
 export class TasksController {
   private readonly logger = new Logger(TasksController.name);
