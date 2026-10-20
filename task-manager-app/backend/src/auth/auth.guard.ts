@@ -7,7 +7,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 
-// Extend Express Request so TypeScript allows attaching the user payload
+// Extend the Express Request interface so TypeScript knows 'user' exists
 export interface AuthenticatedRequest extends Request {
   user?: any;
 }
@@ -20,8 +20,9 @@ export class AuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const token = this.extractTokenFromHeader(request);
 
+    // 1. Test Case: Unauthorized Access (No token provided)
     if (!token) {
-      throw new UnauthorizedException('Access token is missing');
+      throw new UnauthorizedException('Unauthorized access: Access token is missing');
     }
 
     try {
@@ -30,8 +31,13 @@ export class AuthGuard implements CanActivate {
       });
       // Attach the decoded user payload to the request object
       request.user = payload;
-    } catch {
-      throw new UnauthorizedException('Invalid or expired access token');
+    } catch (error: any) {
+      // 2. Test Case: Expired Token
+      if (error?.name === 'TokenExpiredError') {
+        throw new UnauthorizedException('Session expired: Your access token has expired');
+      }
+      // 3. Test Case: Invalid / Tampered Token
+      throw new UnauthorizedException('Invalid token: Signature verification failed');
     }
 
     return true;
