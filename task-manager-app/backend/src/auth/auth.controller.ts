@@ -3,6 +3,7 @@ import {
   Post,
   Body,
   Get,
+  Patch,
   UseGuards,
   Req,
   HttpCode,
@@ -11,6 +12,7 @@ import {
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import { AuthGuard } from './auth.guard';
 
 @Controller('auth')
@@ -29,13 +31,20 @@ export class AuthController {
     return this.authService.login(loginDto);
   }
 
-  // Protected route to verify token works (Day 27)
+  // Day 32: Fetch logged-in user's profile from DB
   @UseGuards(AuthGuard)
   @Get('profile')
   getProfile(@Req() req: any) {
-    return {
-      message: 'You have accessed a protected route!',
-      user: req.user,
-    };
+    return this.authService.getProfile(req.user.sub);
+  }
+
+  // Day 32: Update logged-in user's name, bio, or profile picture
+  @UseGuards(AuthGuard)
+  @Patch('profile')
+  updateProfile(
+    @Req() req: any,
+    @Body() updateProfileDto: UpdateProfileDto,
+  ) {
+    return this.authService.updateProfile(req.user.sub, updateProfileDto);
   }
 }

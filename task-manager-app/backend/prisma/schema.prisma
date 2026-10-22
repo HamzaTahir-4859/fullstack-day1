@@ -1,4 +1,4 @@
-generator client {
+\generator client {
   provider = "prisma-client-js"
 }
 
@@ -11,9 +11,12 @@ model User {
   id        Int      @id @default(autoincrement())
   email     String   @unique
   password  String
-  role      String   @default("user") // Ready for Day 28 Authorization
+  name      String?  @default("Hamza")
+  bio       String?  @default("Full-Stack Developer")
+  avatar    String?
+  role      String   @default("user")
   createdAt DateTime @default(now())
-  tasks     Task[]   // One user can have many tasks
+  tasks     Task[]
 }
 
 model Category {

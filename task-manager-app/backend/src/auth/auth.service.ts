@@ -2,6 +2,7 @@ import {
   Injectable,
   ConflictException,
   UnauthorizedException,
+  NotFoundException,
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
@@ -9,6 +10,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Injectable()
 export class AuthService {
@@ -19,6 +21,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
+  // Day 26: User Registration with Password Hashing
   async register(registerDto: RegisterDto) {
     const { email, password } = registerDto;
 
@@ -30,11 +33,11 @@ export class AuthService {
       throw new ConflictException('Email is already registered');
     }
 
-    // 2. Hash the password (Day 26)
+    // 2. Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // 3. Save user in DB
-    const user = await this.prisma.user.create({
+    const user: any = await this.prisma.user.create({
       data: {
         email,
         password: hashedPassword,
@@ -49,17 +52,21 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
+        name: user.name ?? 'Hamza',
+        bio: user.bio ?? 'Full-Stack Developer',
+        avatar: user.avatar ?? null,
         role: user.role,
         createdAt: user.createdAt,
       },
     };
   }
 
+  // Day 26 & 27: User Login & JWT Access Token Generation
   async login(loginDto: LoginDto) {
     const { email, password } = loginDto;
 
     // 1. Find user by email
-    const user = await this.prisma.user.findUnique({
+    const user: any = await this.prisma.user.findUnique({
       where: { email },
     });
     if (!user) {
@@ -72,7 +79,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    // 3. Generate JWT Access Token (Day 27)
+    // 3. Generate JWT Access Token
     const payload = { sub: user.id, email: user.email, role: user.role };
     const accessToken = await this.jwtService.signAsync(payload);
 
@@ -84,7 +91,66 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
+        name: user.name ?? 'Hamza',
+        bio: user.bio ?? 'Full-Stack Developer',
+        avatar: user.avatar ?? null,
         role: user.role,
+      },
+    };
+  }
+
+  // Day 32: Get User Profile from Database
+  async getProfile(userId: number) {
+    const user: any = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User profile not found');
+    }
+
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name ?? 'Hamza',
+      bio: user.bio ?? 'Full-Stack Developer',
+      avatar: user.avatar ?? null,
+      role: user.role,
+      createdAt: user.createdAt,
+    };
+  }
+
+  // Day 32: Update User Profile (Name, Bio, and Profile Picture)
+  async updateProfile(userId: number, updateProfileDto: UpdateProfileDto) {
+    const existingUser = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!existingUser) {
+      throw new NotFoundException('User profile not found');
+    }
+
+    const updatedUser: any = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(updateProfileDto.name !== undefined && { name: updateProfileDto.name }),
+        ...(updateProfileDto.bio !== undefined && { bio: updateProfileDto.bio }),
+        ...(updateProfileDto.avatar !== undefined && { avatar: updateProfileDto.avatar }),
+      } as any,
+    });
+
+    this.logger.log(`Updated profile for user ID ${userId}`);
+
+    return {
+      message: 'Profile updated successfully',
+      user: {
+        id: updatedUser.id,
+        email: updatedUser.email,
+        name: updatedUser.name,
+        bio: updatedUser.bio,
+        avatar: updatedUser.avatar,
+        role: updatedUser.role,
+        createdAt: updatedUser.createdAt,
       },
     };
   }
