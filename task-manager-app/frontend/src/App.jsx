@@ -3,6 +3,8 @@ import { taskService } from './api/taskService';
 import UserProfile from './components/UserProfile';
 import LoginPage from './components/LoginPage';
 import RegisterPage from './components/RegisterPage';
+import AdminLoginPage from './components/AdminLoginPage';
+import AdminDashboard from './components/AdminDashboard';
 import TaskForm from './components/TaskForm';
 import FilterBar from './components/FilterBar';
 import TaskList from './components/TaskList';
@@ -10,23 +12,23 @@ import Notification from './components/Notification';
 import './App.css';
 
 function App() {
-  // Auth State (Automatically checks if JWT token already exists)
   const [isAuthenticated, setIsAuthenticated] = useState(
     () => Boolean(localStorage.getItem('access_token'))
   );
-  const [authView, setAuthView] = useState('login'); // 'login' or 'register'
+  const [isAdmin, setIsAdmin] = useState(
+    () => localStorage.getItem('user_role') === 'admin'
+  );
+  // 'login' | 'register' | 'admin-login'
+  const [authView, setAuthView] = useState('login');
 
-  // Data State
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // UI State
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState('all');
   const [alert, setAlert] = useState(null);
 
-  // Helper to trigger alerts
   const showAlert = (message, type = 'success') => {
     setAlert({ message, type });
   };
@@ -41,26 +43,22 @@ function App() {
         text: task.title,
         description: task.description || '',
         dueDate: task.dueDate || null,
-        // Supports both NestJS Prisma status ('completed'/'pending') and boolean completed
         completed: task.status === 'completed' || Boolean(task.completed),
         completedAt: null,
       }));
       setTasks(formattedTasks);
-      showAlert('Tasks loaded successfully from the server.', 'success');
     } catch (err) {
-      console.error('Error loading dashboard data:', err);
       setError("We couldn't connect to the server. Please check your connection.");
-      showAlert('Failed to connect to the server.', 'error');
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && !isAdmin) {
       fetchTasks();
     }
-  }, [isAuthenticated, fetchTasks]);
+  }, [isAuthenticated, isAdmin, fetchTasks]);
 
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -70,17 +68,8 @@ function App() {
 
   const addTask = async (text, description, dueDate) => {
     try {
-      // Structure the data for NestJS CreateTaskDto (title, description, status)
-      const newTaskData = {
-        title: text,
-        description: description || '',
-        status: 'pending',
-      };
-
-      // Send the POST request to the server
+      const newTaskData = { title: text, description: description || '', status: 'pending' };
       const savedTask = await taskService.addTask(newTaskData);
-
-      // Update the UI using the ID and data returned by the database
       const formattedTask = {
         id: savedTask.id,
         text: savedTask.title,
@@ -89,142 +78,134 @@ function App() {
         completed: savedTask.status === 'completed' || Boolean(savedTask.completed),
         completedAt: null,
       };
-
-      setTasks((prevTasks) => [...prevTasks, formattedTask]);
+      setTasks((prev) => [...prev, formattedTask]);
       showAlert('New task saved to server!', 'success');
     } catch (err) {
-      console.error(err);
       showAlert('Failed to save task to server.', 'error');
     }
   };
 
   const toggleTask = async (id) => {
-    // Find the target task and determine its new state
     const taskToUpdate = tasks.find((t) => t.id === id);
     if (!taskToUpdate) return;
-
     const isNowCompleted = !taskToUpdate.completed;
     const newStatus = isNowCompleted ? 'completed' : 'pending';
-    const newTimestamp = isNowCompleted
-      ? new Date().toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true,
-        })
-      : null;
 
-    // Optimistically update the UI immediately
     setTasks(
       tasks.map((task) =>
-        task.id === id
-          ? { ...task, completed: isNowCompleted, completedAt: newTimestamp }
-          : task
+        task.id === id ? { ...task, completed: isNowCompleted } : task
       )
     );
 
     try {
-      // Fire the PATCH request in the background using NestJS UpdateTaskDto format
       await taskService.updateTask(id, { status: newStatus });
     } catch (err) {
-      console.error(err);
       showAlert('Failed to sync update with server.', 'error');
-      // Revert UI change if API fails
-      setTasks(
-        tasks.map((task) =>
-          task.id === id
-            ? {
-                ...task,
-                completed: !isNowCompleted,
-                completedAt: taskToUpdate.completedAt,
-              }
-            : task
-        )
-      );
     }
   };
 
   const deleteTask = async (id) => {
     try {
-      // Tell the server to delete it
       await taskService.deleteTask(id);
-
-      // Remove it from the screen if the server succeeded
       setTasks(tasks.filter((task) => task.id !== id));
       showAlert('Task deleted from server.', 'error');
     } catch (err) {
-      console.error(err);
       showAlert('Failed to delete task.', 'error');
     }
   };
 
   const filteredTasks = tasks.filter((task) => {
-    const matchesSearch = task.text
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
+    const matchesSearch = task.text.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesFilter =
-      filter === 'all'
-        ? true
-        : filter === 'completed'
-        ? task.completed
-        : !task.completed;
+      filter === 'all' ? true : filter === 'completed' ? task.completed : !task.completed;
     return matchesSearch && matchesFilter;
   });
 
   const pendingCount = tasks.filter((task) => !task.completed).length;
 
-  const handleLogin = (userOrUsername) => {
+  const handleUserLogin = (userOrUsername) => {
+    localStorage.setItem('user_role', 'user');
+    setIsAdmin(false);
+    setIsAuthenticated(true);
     const displayName =
       typeof userOrUsername === 'object' && userOrUsername !== null
         ? userOrUsername.name || userOrUsername.email
         : userOrUsername || 'User';
-    setIsAuthenticated(true);
     showAlert(`Welcome back, ${displayName}!`, 'success');
   };
 
-  const handleRegister = (userOrUsername) => {
-    const displayName =
-      typeof userOrUsername === 'object' && userOrUsername !== null
-        ? userOrUsername.name || userOrUsername.email
-        : userOrUsername || 'User';
+  const handleAdminLogin = () => {
+    setIsAdmin(true);
     setIsAuthenticated(true);
-    showAlert(`Account created! Welcome, ${displayName}!`, 'success');
   };
 
   const handleLogout = () => {
     localStorage.removeItem('access_token');
+    localStorage.removeItem('user_role');
     setIsAuthenticated(false);
+    setIsAdmin(false);
     setTasks([]);
-    showAlert('Logged out successfully.', 'success');
   };
 
-  // Render Authentication Gates
-  if (!isAuthenticated && authView === 'login') {
+  // 1. Render Separate Admin Login Page
+  if (!isAuthenticated && authView === 'admin-login') {
     return (
-      <LoginPage
-        onLogin={handleLogin}
-        onLoginSuccess={handleLogin}
-        onSwitchToRegister={() => setAuthView('register')}
+      <AdminLoginPage
+        onAdminLoginSuccess={handleAdminLogin}
+        onBackToUserLogin={() => setAuthView('login')}
       />
     );
   }
 
+  // 2. Render Standard User Login Page (+ Button at top right to switch to Admin Login)
+  if (!isAuthenticated && authView === 'login') {
+    return (
+      <div>
+        <div style={{ textAlign: 'right', padding: '16px 24px' }}>
+          <button
+            onClick={() => setAuthView('admin-login')}
+            style={{
+              padding: '8px 14px',
+              backgroundColor: '#0f172a',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              fontSize: '13px',
+            }}
+          >
+            🛡️ Admin Portal Login
+          </button>
+        </div>
+        <LoginPage
+          onLogin={handleUserLogin}
+          onLoginSuccess={handleUserLogin}
+          onSwitchToRegister={() => setAuthView('register')}
+        />
+      </div>
+    );
+  }
+
+  // 3. Render Register Page
   if (!isAuthenticated && authView === 'register') {
     return (
       <RegisterPage
-        onRegister={handleRegister}
+        onRegister={handleUserLogin}
         onSwitchToLogin={() => setAuthView('login')}
       />
     );
   }
 
+  // 4. Render Separate Admin Dashboard if logged in as Admin
+  if (isAuthenticated && isAdmin) {
+    return <AdminDashboard onLogout={handleLogout} />;
+  }
+
+  // 5. Render Standard User Dashboard
   return (
     <div className="app-container">
-      {/* Render the Alert Toast if it exists */}
-      <Notification
-        message={alert?.message}
-        type={alert?.type}
-        onClose={() => setAlert(null)}
-      />
+      <Notification message={alert?.message} type={alert?.type} onClose={() => setAlert(null)} />
 
       <header className="dashboard-header">
         <div>
@@ -252,9 +233,7 @@ function App() {
         </div>
       </header>
 
-      {/* Day 32: User Profile Section (View, Add Picture, Edit Name & Bio) */}
       <UserProfile />
-
       <TaskForm onAdd={addTask} />
       <FilterBar
         search={searchQuery}
@@ -269,7 +248,6 @@ function App() {
             <span className="spinner"></span> Loading your tasks...
           </div>
         )}
-
         {error && !loading && (
           <div className="state-message error">
             <p>⚠️ {error}</p>
@@ -278,19 +256,13 @@ function App() {
             </button>
           </div>
         )}
-
         {!loading && !error && tasks.length === 0 && (
           <div className="state-message empty">
             <p>No tasks found from the server. Create your first task above!</p>
           </div>
         )}
-
         {!loading && !error && tasks.length > 0 && (
-          <TaskList
-            tasks={filteredTasks}
-            onToggle={toggleTask}
-            onDelete={deleteTask}
-          />
+          <TaskList tasks={filteredTasks} onToggle={toggleTask} onDelete={deleteTask} />
         )}
       </div>
     </div>

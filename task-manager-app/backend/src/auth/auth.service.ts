@@ -3,7 +3,9 @@ import {
   ConflictException,
   UnauthorizedException,
   NotFoundException,
+  ForbiddenException,
   Logger,
+  OnModuleInit,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
@@ -13,7 +15,7 @@ import { LoginDto } from './dto/login.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Injectable()
-export class AuthService {
+export class AuthService implements OnModuleInit {
   private readonly logger = new Logger(AuthService.name);
 
   constructor(
@@ -21,11 +23,32 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  // Day 26: User Registration with Password Hashing
+  // Automatically creates a default Admin account when the server starts
+  async onModuleInit() {
+    const adminEmail = 'admin@kodex.com';
+    const existingAdmin = await this.prisma.user.findUnique({
+      where: { email: adminEmail },
+    });
+
+    if (!existingAdmin) {
+      const hashedPassword = await bcrypt.hash('admin123', 10);
+      await this.prisma.user.create({
+        data: {
+          email: adminEmail,
+          password: hashedPassword,
+          name: 'System Admin',
+          bio: 'Administrator Account',
+          role: 'admin',
+        } as any,
+      });
+      this.logger.log('Default Admin seeded -> Email: admin@kodex.com | Pass: admin123');
+    }
+  }
+
+  // Day 26: User Registration
   async register(registerDto: RegisterDto) {
     const { email, password } = registerDto;
 
-    // 1. Check if user already exists
     const existingUser = await this.prisma.user.findUnique({
       where: { email },
     });
@@ -33,10 +56,8 @@ export class AuthService {
       throw new ConflictException('Email is already registered');
     }
 
-    // 2. Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 3. Save user in DB
     const user: any = await this.prisma.user.create({
       data: {
         email,
@@ -44,9 +65,6 @@ export class AuthService {
       },
     });
 
-    this.logger.log(`Registered new user: ${user.email}`);
-
-    // Return user info WITHOUT the password
     return {
       message: 'User registered successfully',
       user: {
@@ -61,11 +79,10 @@ export class AuthService {
     };
   }
 
-  // Day 26 & 27: User Login & JWT Access Token Generation
+  // Day 26 & 27: Regular User Login
   async login(loginDto: LoginDto) {
     const { email, password } = loginDto;
 
-    // 1. Find user by email
     const user: any = await this.prisma.user.findUnique({
       where: { email },
     });
@@ -73,17 +90,13 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    // 2. Compare passwords
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    // 3. Generate JWT Access Token
     const payload = { sub: user.id, email: user.email, role: user.role };
     const accessToken = await this.jwtService.signAsync(payload);
-
-    this.logger.log(`User logged in: ${user.email}`);
 
     return {
       message: 'Login successful',
@@ -99,7 +112,42 @@ export class AuthService {
     };
   }
 
-  // Day 32: Get User Profile from Database
+  // Dedicated Admin Login (Rejects regular users with 403 Forbidden)
+  async adminLogin(loginDto: LoginDto) {
+    const { email, password } = loginDto;
+
+    const user: any = await this.prisma.user.findUnique({
+      where: { email },
+    });
+    if (!user) {
+      throw new UnauthorizedException('Invalid admin credentials');
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid admin credentials');
+    }
+
+    if (user.role !== 'admin') {
+      throw new ForbiddenException('Access denied: This account does not have Admin privileges');
+    }
+
+    const payload = { sub: user.id, email: user.email, role: user.role };
+    const accessToken = await this.jwtService.signAsync(payload);
+
+    return {
+      message: 'Admin login successful',
+      access_token: accessToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name ?? 'System Admin',
+        role: user.role,
+      },
+    };
+  }
+
+  // Day 32: Get User Profile
   async getProfile(userId: number) {
     const user: any = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -120,16 +168,8 @@ export class AuthService {
     };
   }
 
-  // Day 32: Update User Profile (Name, Bio, and Profile Picture)
+  // Day 32: Update User Profile
   async updateProfile(userId: number, updateProfileDto: UpdateProfileDto) {
-    const existingUser = await this.prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!existingUser) {
-      throw new NotFoundException('User profile not found');
-    }
-
     const updatedUser: any = await this.prisma.user.update({
       where: { id: userId },
       data: {
@@ -138,8 +178,6 @@ export class AuthService {
         ...(updateProfileDto.avatar !== undefined && { avatar: updateProfileDto.avatar }),
       } as any,
     });
-
-    this.logger.log(`Updated profile for user ID ${userId}`);
 
     return {
       message: 'Profile updated successfully',
@@ -153,5 +191,54 @@ export class AuthService {
         createdAt: updatedUser.createdAt,
       },
     };
+  }
+
+  // ADMIN ONLY: Get all users and all system tasks
+  async getAdminDashboardData() {
+    const users: any[] = await this.prisma.user.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const tasks = await this.prisma.task.findMany({
+      include: { category: true, user: true },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return {
+      stats: {
+        totalUsers: users.length,
+        totalAdmins: users.filter((u) => u.role === 'admin').length,
+        totalTasks: tasks.length,
+        completedTasks: tasks.filter((t) => t.status === 'completed').length,
+      },
+      users: users.map((u) => ({
+        id: u.id,
+        email: u.email,
+        name: u.name ?? 'User',
+        role: u.role,
+        createdAt: u.createdAt,
+      })),
+      tasks,
+    };
+  }
+
+  // ADMIN ONLY: Change a user's role (user <-> admin)
+  async updateUserRole(targetUserId: number, role: string) {
+    const updated: any = await this.prisma.user.update({
+      where: { id: targetUserId },
+      data: { role },
+    });
+    return {
+      message: `User role updated to ${role}`,
+      user: { id: updated.id, email: updated.email, role: updated.role },
+    };
+  }
+
+  // ADMIN ONLY: Delete a user account
+  async deleteUser(targetUserId: number) {
+    await this.prisma.user.delete({
+      where: { id: targetUserId },
+    });
+    return { message: 'User deleted successfully' };
   }
 }
