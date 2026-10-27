@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { taskService } from './api/taskService';
 import UserProfile from './components/UserProfile';
+import UserChatWidget from './components/UserChatWidget';
 import LoginPage from './components/LoginPage';
 import RegisterPage from './components/RegisterPage';
 import AdminLoginPage from './components/AdminLoginPage';
@@ -90,10 +91,19 @@ function App() {
     if (!taskToUpdate) return;
     const isNowCompleted = !taskToUpdate.completed;
     const newStatus = isNowCompleted ? 'completed' : 'pending';
+    const newTimestamp = isNowCompleted
+      ? new Date().toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+        })
+      : null;
 
     setTasks(
       tasks.map((task) =>
-        task.id === id ? { ...task, completed: isNowCompleted } : task
+        task.id === id
+          ? { ...task, completed: isNowCompleted, completedAt: newTimestamp }
+          : task
       )
     );
 
@@ -101,6 +111,17 @@ function App() {
       await taskService.updateTask(id, { status: newStatus });
     } catch (err) {
       showAlert('Failed to sync update with server.', 'error');
+      setTasks(
+        tasks.map((task) =>
+          task.id === id
+            ? {
+                ...task,
+                completed: !isNowCompleted,
+                completedAt: taskToUpdate.completedAt,
+              }
+            : task
+        )
+      );
     }
   };
 
@@ -197,12 +218,12 @@ function App() {
     );
   }
 
-  // 4. Render Separate Admin Dashboard if logged in as Admin
+  // 4. Render Separate Admin Dashboard (includes multi-user Socket.IO Chat) if logged in as Admin
   if (isAuthenticated && isAdmin) {
     return <AdminDashboard onLogout={handleLogout} />;
   }
 
-  // 5. Render Standard User Dashboard
+  // 5. Render Standard User Dashboard (includes Profile + Live Admin Support Chat)
   return (
     <div className="app-container">
       <Notification message={alert?.message} type={alert?.type} onClose={() => setAlert(null)} />
@@ -233,7 +254,12 @@ function App() {
         </div>
       </header>
 
+      {/* Day 32: User Profile Section */}
       <UserProfile />
+
+      {/* Real-Time Socket.IO Support Chat with Admin */}
+      <UserChatWidget />
+
       <TaskForm onAdd={addTask} />
       <FilterBar
         search={searchQuery}

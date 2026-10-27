@@ -1,4 +1,4 @@
-\generator client {
+generator client {
   provider = "prisma-client-js"
 }
 
@@ -8,15 +8,16 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
+  id        Int           @id @default(autoincrement())
+  email     String        @unique
   password  String
-  name      String?  @default("Hamza")
-  bio       String?  @default("Full-Stack Developer")
+  name      String?       @default("Hamza")
+  bio       String?       @default("Full-Stack Developer")
   avatar    String?
-  role      String   @default("user")
-  createdAt DateTime @default(now())
+  role      String        @default("user")
+  createdAt DateTime      @default(now())
   tasks     Task[]
+  messages  ChatMessage[]
 }
 
 model Category {
@@ -37,4 +38,15 @@ model Task {
 
   userId      Int?
   user        User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ChatMessage {
+  id         Int      @id @default(autoincrement())
+  userId     Int      // The regular user whose support thread this belongs to
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  senderId   Int      // ID of whoever sent the message (user or admin)
+  senderRole String   // 'user' or 'admin'
+  senderName String
+  content    String
+  createdAt  DateTime @default(now())
 }

@@ -4,9 +4,10 @@ import { AppService } from './app.service';
 import { TasksModule } from './tasks/tasks.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, TasksModule],
+  imports: [PrismaModule, AuthModule, TasksModule, ChatModule],
   controllers: [AppController],
   providers: [AppService],
 })
