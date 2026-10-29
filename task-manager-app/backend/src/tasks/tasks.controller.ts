@@ -6,40 +6,33 @@ import {
   Patch,
   Param,
   Delete,
-  HttpCode,
-  HttpStatus,
-  Logger,
   ParseIntPipe,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { AuthGuard } from '../auth/auth.guard';
 
-@UseGuards(AuthGuard) // <-- LOCKS DOWN ALL TASK ROUTES (Day 27 Protected API)
+@UseGuards(AuthGuard)
 @Controller('tasks')
 export class TasksController {
-  private readonly logger = new Logger(TasksController.name);
-
   constructor(private readonly tasksService: TasksService) {}
 
   @Post()
-  @HttpCode(HttpStatus.CREATED)
-  create(@Body() createTaskDto: CreateTaskDto) {
-    this.logger.log('POST /tasks');
-    return this.tasksService.create(createTaskDto);
+  create(@Req() req: any, @Body() createTaskDto: CreateTaskDto) {
+    const userId = req.user ? Number(req.user.sub) : undefined;
+    return this.tasksService.create(createTaskDto, userId);
   }
 
   @Get()
-  findAll() {
-    this.logger.log('GET /tasks');
-    return this.tasksService.findAll();
+  findAll(@Req() req: any) {
+    return this.tasksService.findAll(req.user);
   }
 
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
-    this.logger.log(`GET /tasks/${id}`);
     return this.tasksService.findOne(id);
   }
 
@@ -48,14 +41,11 @@ export class TasksController {
     @Param('id', ParseIntPipe) id: number,
     @Body() updateTaskDto: UpdateTaskDto,
   ) {
-    this.logger.log(`PATCH /tasks/${id}`);
     return this.tasksService.update(id, updateTaskDto);
   }
 
   @Delete(':id')
-  @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id', ParseIntPipe) id: number) {
-    this.logger.log(`DELETE /tasks/${id}`);
     return this.tasksService.remove(id);
   }
 }

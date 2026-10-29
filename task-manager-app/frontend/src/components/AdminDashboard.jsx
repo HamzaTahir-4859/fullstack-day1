@@ -3,9 +3,16 @@ import { io } from 'socket.io-client';
 
 export default function AdminDashboard({ onLogout }) {
   const [data, setData] = useState({
-    stats: { totalUsers: 0, totalAdmins: 0, totalTasks: 0, completedTasks: 0 },
+    stats: {
+      totalUsers: 0,
+      totalAdmins: 0,
+      totalTasks: 0,
+      completedTasks: 0,
+      totalRevenue: 0,
+    },
     users: [],
     tasks: [],
+    payments: [],
   });
   const [loading, setLoading] = useState(true);
   const [statusMsg, setStatusMsg] = useState('');
@@ -48,7 +55,6 @@ export default function AdminDashboard({ onLogout }) {
     fetchAdminOverview();
   }, [fetchAdminOverview]);
 
-  // Connect Admin to Socket.IO
   useEffect(() => {
     if (!token) return;
 
@@ -92,7 +98,6 @@ export default function AdminDashboard({ onLogout }) {
     };
   }, [token]);
 
-  // Scroll ONLY the internal chat box, not the whole browser window
   useEffect(() => {
     if (chatScrollBoxRef.current) {
       chatScrollBoxRef.current.scrollTop = chatScrollBoxRef.current.scrollHeight;
@@ -198,7 +203,6 @@ export default function AdminDashboard({ onLogout }) {
               borderRadius: '4px',
               fontSize: '11px',
               fontWeight: 'bold',
-              letterSpacing: '0.5px',
             }}
           >
             ADMIN CONSOLE
@@ -206,10 +210,23 @@ export default function AdminDashboard({ onLogout }) {
           <h1 style={{ margin: 0, fontSize: '20px' }}>
             System Administration Portal
           </h1>
+          <button
+            onClick={fetchAdminOverview}
+            style={{
+              padding: '5px 10px',
+              backgroundColor: '#334155',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '12px',
+              cursor: 'pointer',
+            }}
+          >
+            🔄 Refresh Live Data
+          </button>
           {statusMsg && (
             <span
               style={{
-                marginLeft: '16px',
                 padding: '4px 12px',
                 backgroundColor: '#064e3b',
                 border: '1px solid #10b981',
@@ -253,89 +270,66 @@ export default function AdminDashboard({ onLogout }) {
           boxSizing: 'border-box',
         }}
       >
-        {/* Top Row: 4 Metrics Cards */}
+        {/* Top Row: 5 Metrics Cards */}
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
+            gridTemplateColumns: 'repeat(5, 1fr)',
             gap: '16px',
             flexShrink: 0,
           }}
         >
           {[
-            {
-              label: 'Total Registered Users',
-              value: data.stats.totalUsers,
-              color: '#38bdf8',
-            },
-            {
-              label: 'System Admins',
-              value: data.stats.totalAdmins,
-              color: '#f87171',
-            },
-            {
-              label: 'Total System Tasks',
-              value: data.stats.totalTasks,
-              color: '#a78bfa',
-            },
-            {
-              label: 'Completed Tasks',
-              value: data.stats.completedTasks,
-              color: '#4ade80',
-            },
+            { label: 'Registered Users', value: data.stats.totalUsers, color: '#38bdf8' },
+            { label: 'System Admins', value: data.stats.totalAdmins, color: '#f87171' },
+            { label: 'Total Tasks Added', value: data.stats.totalTasks, color: '#a78bfa' },
+            { label: 'Tasks Completed', value: data.stats.completedTasks, color: '#4ade80' },
+            { label: 'Total Revenue Paid', value: `$${data.stats.totalRevenue || 0}`, color: '#facc15' },
           ].map((stat, i) => (
             <div
               key={i}
               style={{
                 backgroundColor: '#1e293b',
-                padding: '16px 20px',
+                padding: '14px 18px',
                 borderRadius: '10px',
                 border: '1px solid #334155',
               }}
             >
-              <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}>
-                {stat.label}
-              </p>
-              <h2
-                style={{
-                  margin: '6px 0 0 0',
-                  fontSize: '28px',
-                  color: stat.color,
-                }}
-              >
+              <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}>{stat.label}</p>
+              <h2 style={{ margin: '6px 0 0 0', fontSize: '26px', color: stat.color }}>
                 {stat.value}
               </h2>
             </div>
           ))}
         </div>
 
-        {/* Bottom Workspace: Left Column (Users + Tasks Tables) | Right Column (Isolated Live Chat) */}
+        {/* Workspace Grid */}
         <div
           style={{
             flex: 1,
-            minHeight: '480px',
+            minHeight: '520px',
             display: 'grid',
-            gridTemplateColumns: '1.35fr 1fr',
+            gridTemplateColumns: '1.45fr 1fr',
             gap: '20px',
           }}
         >
-          {/* LEFT COLUMN: User Management + Task Audit Tables */}
+          {/* LEFT COLUMN: Tasks Who Added/Completed + Payments + Users */}
           <div
             style={{
               display: 'flex',
               flexDirection: 'column',
-              gap: '20px',
+              gap: '16px',
               minHeight: 0,
               overflow: 'hidden',
             }}
           >
-            {/* Table 1: Registered Users */}
+            {/* Table 1: Who Added & Completed Tasks */}
             <div
               style={{
-                flex: 1,
+                flex: 1.2,
                 minHeight: 0,
                 backgroundColor: '#1e293b',
-                padding: '18px',
+                padding: '16px',
                 borderRadius: '12px',
                 border: '1px solid #334155',
                 display: 'flex',
@@ -343,97 +337,164 @@ export default function AdminDashboard({ onLogout }) {
                 overflow: 'hidden',
               }}
             >
-              <h3
-                style={{
-                  margin: '0 0 12px 0',
-                  fontSize: '15px',
-                  borderBottom: '1px solid #334155',
-                  paddingBottom: '10px',
-                  flexShrink: 0,
-                }}
-              >
-                👥 Registered Users & Role Permissions
+              <h3 style={{ margin: '0 0 10px 0', fontSize: '15px', borderBottom: '1px solid #334155', paddingBottom: '8px' }}>
+                📋 Task Activity Monitor (Who Added & Who Completed Tasks)
               </h3>
               <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
-                <table
-                  style={{
-                    width: '100%',
-                    borderCollapse: 'collapse',
-                    fontSize: '13px',
-                  }}
-                >
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                   <thead>
-                    <tr
-                      style={{
-                        textAlign: 'left',
-                        color: '#94a3b8',
-                        borderBottom: '1px solid #334155',
-                      }}
-                    >
-                      <th style={{ padding: '8px' }}>ID</th>
-                      <th style={{ padding: '8px' }}>Name</th>
-                      <th style={{ padding: '8px' }}>Email</th>
-                      <th style={{ padding: '8px' }}>Role</th>
-                      <th style={{ padding: '8px' }}>Actions</th>
+                    <tr style={{ textAlign: 'left', color: '#94a3b8', borderBottom: '1px solid #334155' }}>
+                      <th style={{ padding: '8px' }}>Task</th>
+                      <th style={{ padding: '8px' }}>Added By User</th>
+                      <th style={{ padding: '8px' }}>Completion Status</th>
+                      <th style={{ padding: '8px' }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.tasks.map((t) => {
+                      const isDone = t.status === 'completed';
+                      return (
+                        <tr key={t.id} style={{ borderBottom: '1px solid #334155' }}>
+                          <td style={{ padding: '8px', fontWeight: 'bold' }}>
+                            #{t.id} {t.title}
+                          </td>
+                          <td style={{ padding: '8px', color: '#38bdf8' }}>
+                            👤 {t.userName} ({t.userEmail})
+                          </td>
+                          <td style={{ padding: '8px' }}>
+                            <span
+                              style={{
+                                padding: '3px 8px',
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                fontWeight: 'bold',
+                                backgroundColor: isDone ? '#064e3b' : '#78350f',
+                                color: isDone ? '#4ade80' : '#fcd34d',
+                              }}
+                            >
+                              {isDone
+                                ? `✅ DONE BY ${t.userName.toUpperCase()}`
+                                : `⏳ ADDED / IN PROGRESS`}
+                            </span>
+                          </td>
+                          <td style={{ padding: '8px' }}>
+                            <button
+                              onClick={() => handleAdminDeleteTask(t.id)}
+                              style={{
+                                padding: '4px 8px',
+                                borderRadius: '4px',
+                                border: 'none',
+                                backgroundColor: '#ef4444',
+                                color: '#fff',
+                                cursor: 'pointer',
+                                fontSize: '11px',
+                              }}
+                            >
+                              Remove
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Table 2: Payments Received from Users */}
+            <div
+              style={{
+                flex: 1,
+                minHeight: 0,
+                backgroundColor: '#1e293b',
+                padding: '16px',
+                borderRadius: '12px',
+                border: '1px solid #334155',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+              }}
+            >
+              <h3 style={{ margin: '0 0 10px 0', fontSize: '15px', borderBottom: '1px solid #334155', paddingBottom: '8px' }}>
+                💸 Payments Received from Users
+              </h3>
+              <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+                {(!data.payments || data.payments.length === 0) ? (
+                  <p style={{ color: '#64748b', fontSize: '13px' }}>No user payments received yet.</p>
+                ) : (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                    <thead>
+                      <tr style={{ textAlign: 'left', color: '#94a3b8', borderBottom: '1px solid #334155' }}>
+                        <th style={{ padding: '8px' }}>Paid By</th>
+                        <th style={{ padding: '8px' }}>Amount</th>
+                        <th style={{ padding: '8px' }}>Method</th>
+                        <th style={{ padding: '8px' }}>Purpose</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.payments.map((p) => (
+                        <tr key={p.id} style={{ borderBottom: '1px solid #334155' }}>
+                          <td style={{ padding: '8px' }}>
+                            {p.userName} ({p.userEmail})
+                          </td>
+                          <td style={{ padding: '8px', color: '#4ade80', fontWeight: 'bold' }}>
+                            +${p.amount}
+                          </td>
+                          <td style={{ padding: '8px' }}>{p.method}</td>
+                          <td style={{ padding: '8px', color: '#cbd5e1' }}>{p.description}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+
+            {/* Table 3: Registered Users */}
+            <div
+              style={{
+                flex: 1,
+                minHeight: 0,
+                backgroundColor: '#1e293b',
+                padding: '16px',
+                borderRadius: '12px',
+                border: '1px solid #334155',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+              }}
+            >
+              <h3 style={{ margin: '0 0 10px 0', fontSize: '15px', borderBottom: '1px solid #334155', paddingBottom: '8px' }}>
+                👥 Registered Users & Roles
+              </h3>
+              <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', color: '#94a3b8', borderBottom: '1px solid #334155' }}>
+                      <th style={{ padding: '6px' }}>ID</th>
+                      <th style={{ padding: '6px' }}>Name</th>
+                      <th style={{ padding: '6px' }}>Email</th>
+                      <th style={{ padding: '6px' }}>Role</th>
+                      <th style={{ padding: '6px' }}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {data.users.map((u) => (
-                      <tr
-                        key={u.id}
-                        style={{ borderBottom: '1px solid #334155' }}
-                      >
-                        <td style={{ padding: '8px' }}>#{u.id}</td>
-                        <td style={{ padding: '8px' }}>{u.name}</td>
-                        <td style={{ padding: '8px' }}>{u.email}</td>
-                        <td style={{ padding: '8px' }}>
-                          <span
-                            style={{
-                              padding: '3px 8px',
-                              borderRadius: '4px',
-                              fontSize: '11px',
-                              fontWeight: 'bold',
-                              backgroundColor:
-                                u.role === 'admin' ? '#7f1d1d' : '#1e3a8a',
-                              color:
-                                u.role === 'admin' ? '#fca5a5' : '#93c5fd',
-                            }}
-                          >
-                            {u.role.toUpperCase()}
-                          </span>
-                        </td>
-                        <td
-                          style={{
-                            padding: '8px',
-                            display: 'flex',
-                            gap: '6px',
-                          }}
-                        >
+                      <tr key={u.id} style={{ borderBottom: '1px solid #334155' }}>
+                        <td style={{ padding: '6px' }}>#{u.id}</td>
+                        <td style={{ padding: '6px' }}>{u.name}</td>
+                        <td style={{ padding: '6px' }}>{u.email}</td>
+                        <td style={{ padding: '6px' }}>{u.role.toUpperCase()}</td>
+                        <td style={{ padding: '6px', display: 'flex', gap: '6px' }}>
                           <button
                             onClick={() => handleRoleToggle(u)}
-                            style={{
-                              padding: '5px 10px',
-                              borderRadius: '4px',
-                              border: '1px solid #475569',
-                              backgroundColor: '#0f172a',
-                              color: '#fff',
-                              cursor: 'pointer',
-                              fontSize: '11px',
-                            }}
+                            style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #475569', backgroundColor: '#0f172a', color: '#fff', cursor: 'pointer', fontSize: '11px' }}
                           >
                             Make {u.role === 'admin' ? 'User' : 'Admin'}
                           </button>
                           <button
                             onClick={() => handleDeleteUser(u.id, u.email)}
-                            style={{
-                              padding: '5px 10px',
-                              borderRadius: '4px',
-                              border: 'none',
-                              backgroundColor: '#dc2626',
-                              color: '#fff',
-                              cursor: 'pointer',
-                              fontSize: '11px',
-                            }}
+                            style={{ padding: '4px 8px', borderRadius: '4px', border: 'none', backgroundColor: '#dc2626', color: '#fff', cursor: 'pointer', fontSize: '11px' }}
                           >
                             Delete
                           </button>
@@ -444,88 +505,9 @@ export default function AdminDashboard({ onLogout }) {
                 </table>
               </div>
             </div>
-
-            {/* Table 2: Global Tasks */}
-            <div
-              style={{
-                flex: 1,
-                minHeight: 0,
-                backgroundColor: '#1e293b',
-                padding: '18px',
-                borderRadius: '12px',
-                border: '1px solid #334155',
-                display: 'flex',
-                flexDirection: 'column',
-                overflow: 'hidden',
-              }}
-            >
-              <h3
-                style={{
-                  margin: '0 0 12px 0',
-                  fontSize: '15px',
-                  borderBottom: '1px solid #334155',
-                  paddingBottom: '10px',
-                  flexShrink: 0,
-                }}
-              >
-                📋 Global Task Database Audit
-              </h3>
-              <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
-                <table
-                  style={{
-                    width: '100%',
-                    borderCollapse: 'collapse',
-                    fontSize: '13px',
-                  }}
-                >
-                  <thead>
-                    <tr
-                      style={{
-                        textAlign: 'left',
-                        color: '#94a3b8',
-                        borderBottom: '1px solid #334155',
-                      }}
-                    >
-                      <th style={{ padding: '8px' }}>ID</th>
-                      <th style={{ padding: '8px' }}>Title</th>
-                      <th style={{ padding: '8px' }}>Status</th>
-                      <th style={{ padding: '8px' }}>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.tasks.map((t) => (
-                      <tr
-                        key={t.id}
-                        style={{ borderBottom: '1px solid #334155' }}
-                      >
-                        <td style={{ padding: '8px' }}>#{t.id}</td>
-                        <td style={{ padding: '8px' }}>{t.title}</td>
-                        <td style={{ padding: '8px' }}>{t.status}</td>
-                        <td style={{ padding: '8px' }}>
-                          <button
-                            onClick={() => handleAdminDeleteTask(t.id)}
-                            style={{
-                              padding: '5px 10px',
-                              borderRadius: '4px',
-                              border: 'none',
-                              backgroundColor: '#ef4444',
-                              color: '#fff',
-                              cursor: 'pointer',
-                              fontSize: '11px',
-                            }}
-                          >
-                            Remove Task
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
           </div>
 
-          {/* RIGHT COLUMN: Strictly Contained Live Support Chat */}
+          {/* RIGHT COLUMN: Real-Time Support Chat */}
           <div
             style={{
               backgroundColor: '#1e293b',
@@ -546,18 +528,10 @@ export default function AdminDashboard({ onLogout }) {
                 borderBottom: '1px solid #334155',
                 paddingBottom: '10px',
                 marginBottom: '12px',
-                flexShrink: 0,
               }}
             >
-              <h3 style={{ margin: 0, fontSize: '15px' }}>
-                💬 Real-Time User Support Chat
-              </h3>
-              <span
-                style={{
-                  fontSize: '12px',
-                  color: socketConnected ? '#4ade80' : '#f87171',
-                }}
-              >
+              <h3 style={{ margin: 0, fontSize: '15px' }}>💬 Real-Time User Support Chat</h3>
+              <span style={{ fontSize: '12px', color: socketConnected ? '#4ade80' : '#f87171' }}>
                 ● {socketConnected ? 'Socket Connected' : 'Disconnected'}
               </span>
             </div>
@@ -567,30 +541,12 @@ export default function AdminDashboard({ onLogout }) {
                 flex: 1,
                 minHeight: 0,
                 display: 'grid',
-                gridTemplateColumns: '190px 1fr',
+                gridTemplateColumns: '180px 1fr',
                 gap: '12px',
                 overflow: 'hidden',
               }}
             >
-              {/* Left Chat Sidebar: Users */}
-              <div
-                style={{
-                  borderRight: '1px solid #334155',
-                  paddingRight: '10px',
-                  overflowY: 'auto',
-                  minHeight: 0,
-                }}
-              >
-                <p
-                  style={{
-                    margin: '0 0 8px 0',
-                    fontSize: '11px',
-                    color: '#94a3b8',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  Select User
-                </p>
+              <div style={{ borderRight: '1px solid #334155', paddingRight: '10px', overflowY: 'auto', minHeight: 0 }}>
                 {data.users.map((u) => (
                   <div
                     key={u.id}
@@ -600,48 +556,17 @@ export default function AdminDashboard({ onLogout }) {
                       borderRadius: '6px',
                       cursor: 'pointer',
                       marginBottom: '6px',
-                      backgroundColor:
-                        selectedUser?.id === u.id ? '#2563eb' : '#0f172a',
+                      backgroundColor: selectedUser?.id === u.id ? '#2563eb' : '#0f172a',
                       border: '1px solid #334155',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
                     }}
                   >
-                    <div
-                      style={{
-                        fontWeight: 'bold',
-                        fontSize: '12px',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}
-                    >
-                      {u.name}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: '11px',
-                        color: '#cbd5e1',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}
-                    >
-                      {u.email}
-                    </div>
+                    <div style={{ fontWeight: 'bold', fontSize: '12px' }}>{u.name}</div>
+                    <div style={{ fontSize: '11px', color: '#cbd5e1' }}>{u.email}</div>
                   </div>
                 ))}
               </div>
 
-              {/* Right Chat Conversation Box */}
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  minHeight: 0,
-                  overflow: 'hidden',
-                }}
-              >
+              <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
                 <div
                   ref={chatScrollBoxRef}
                   style={{
@@ -658,81 +583,36 @@ export default function AdminDashboard({ onLogout }) {
                     border: '1px solid #334155',
                   }}
                 >
-                  {!selectedUser ? (
-                    <p
-                      style={{
-                        color: '#64748b',
-                        textAlign: 'center',
-                        margin: 'auto',
-                        fontSize: '13px',
-                      }}
-                    >
-                      Select a user to start chatting.
-                    </p>
-                  ) : chatMessages.length === 0 ? (
-                    <p
-                      style={{
-                        color: '#64748b',
-                        textAlign: 'center',
-                        margin: 'auto',
-                        fontSize: '13px',
-                      }}
-                    >
-                      No messages with {selectedUser.email} yet.
-                    </p>
-                  ) : (
-                    chatMessages.map((m) => {
-                      const isAdmin = m.senderRole === 'admin';
-                      return (
-                        <div
-                          key={m.id}
-                          style={{
-                            alignSelf: isAdmin ? 'flex-end' : 'flex-start',
-                            maxWidth: '80%',
-                            backgroundColor: isAdmin ? '#dc2626' : '#334155',
-                            color: '#fff',
-                            padding: '8px 12px',
-                            borderRadius: '8px',
-                            fontSize: '13px',
-                            wordBreak: 'break-word',
-                            flexShrink: 0,
-                          }}
-                        >
-                          <div
-                            style={{
-                              fontSize: '10px',
-                              opacity: 0.85,
-                              marginBottom: '2px',
-                              fontWeight: 'bold',
-                            }}
-                          >
-                            {isAdmin ? 'You (Admin)' : m.senderName}
-                          </div>
-                          <div>{m.content}</div>
+                  {chatMessages.map((m) => {
+                    const isAdmin = m.senderRole === 'admin';
+                    return (
+                      <div
+                        key={m.id}
+                        style={{
+                          alignSelf: isAdmin ? 'flex-end' : 'flex-start',
+                          maxWidth: '80%',
+                          backgroundColor: isAdmin ? '#dc2626' : '#334155',
+                          color: '#fff',
+                          padding: '8px 12px',
+                          borderRadius: '8px',
+                          fontSize: '13px',
+                        }}
+                      >
+                        <div style={{ fontSize: '10px', opacity: 0.85, fontWeight: 'bold' }}>
+                          {isAdmin ? 'You (Admin)' : m.senderName}
                         </div>
-                      );
-                    })
-                  )}
+                        <div>{m.content}</div>
+                      </div>
+                    );
+                  })}
                 </div>
 
-                <form
-                  onSubmit={handleAdminSendMessage}
-                  style={{
-                    display: 'flex',
-                    gap: '8px',
-                    flexShrink: 0,
-                  }}
-                >
+                <form onSubmit={handleAdminSendMessage} style={{ display: 'flex', gap: '8px' }}>
                   <input
                     type="text"
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
-                    placeholder={
-                      selectedUser
-                        ? `Reply to ${selectedUser.email}...`
-                        : 'Select a user...'
-                    }
-                    disabled={!selectedUser}
+                    placeholder={selectedUser ? `Reply to ${selectedUser.email}...` : 'Select user...'}
                     style={{
                       flex: 1,
                       padding: '10px',
@@ -740,12 +620,10 @@ export default function AdminDashboard({ onLogout }) {
                       border: '1px solid #475569',
                       backgroundColor: '#0f172a',
                       color: '#fff',
-                      fontSize: '13px',
                     }}
                   />
                   <button
                     type="submit"
-                    disabled={!selectedUser}
                     style={{
                       padding: '10px 16px',
                       backgroundColor: '#dc2626',
@@ -754,11 +632,9 @@ export default function AdminDashboard({ onLogout }) {
                       borderRadius: '6px',
                       fontWeight: 'bold',
                       cursor: 'pointer',
-                      fontSize: '13px',
-                      whiteSpace: 'nowrap',
                     }}
                   >
-                    Send Reply
+                    Send
                   </button>
                 </form>
               </div>

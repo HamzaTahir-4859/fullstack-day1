@@ -23,7 +23,6 @@ export class AuthService implements OnModuleInit {
     private readonly jwtService: JwtService,
   ) {}
 
-  // Automatically creates a default Admin account when the server starts
   async onModuleInit() {
     const adminEmail = 'admin@kodex.com';
     const existingAdmin = await this.prisma.user.findUnique({
@@ -45,7 +44,6 @@ export class AuthService implements OnModuleInit {
     }
   }
 
-  // Day 26: User Registration
   async register(registerDto: RegisterDto) {
     const { email, password } = registerDto;
 
@@ -79,7 +77,6 @@ export class AuthService implements OnModuleInit {
     };
   }
 
-  // Day 26 & 27: Regular User Login
   async login(loginDto: LoginDto) {
     const { email, password } = loginDto;
 
@@ -112,7 +109,6 @@ export class AuthService implements OnModuleInit {
     };
   }
 
-  // Dedicated Admin Login (Rejects regular users with 403 Forbidden)
   async adminLogin(loginDto: LoginDto) {
     const { email, password } = loginDto;
 
@@ -147,7 +143,6 @@ export class AuthService implements OnModuleInit {
     };
   }
 
-  // Day 32: Get User Profile
   async getProfile(userId: number) {
     const user: any = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -168,7 +163,6 @@ export class AuthService implements OnModuleInit {
     };
   }
 
-  // Day 32: Update User Profile
   async updateProfile(userId: number, updateProfileDto: UpdateProfileDto) {
     const updatedUser: any = await this.prisma.user.update({
       where: { id: userId },
@@ -193,16 +187,53 @@ export class AuthService implements OnModuleInit {
     };
   }
 
-  // ADMIN ONLY: Get all users and all system tasks
+  // USER PAYMENT: Send payment to Admin
+  async createPayment(
+    userId: number,
+    dto: { amount: number; method?: string; description?: string },
+  ) {
+    const payment = await (this.prisma as any).payment.create({
+      data: {
+        userId: Number(userId),
+        amount: Number(dto.amount),
+        method: dto.method || 'Card',
+        description: dto.description || 'Payment to Admin',
+        status: 'completed',
+      },
+      include: { user: true },
+    });
+
+    return {
+      message: 'Payment sent to Admin successfully!',
+      payment,
+    };
+  }
+
+  // USER PAYMENT HISTORY
+  async getUserPayments(userId: number) {
+    return (this.prisma as any).payment.findMany({
+      where: { userId: Number(userId) },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  // ADMIN ONLY: Get all users, tasks (with creator info), and payments
   async getAdminDashboardData() {
     const users: any[] = await this.prisma.user.findMany({
       orderBy: { createdAt: 'desc' },
     });
 
-    const tasks = await this.prisma.task.findMany({
+    const tasks: any[] = await this.prisma.task.findMany({
       include: { category: true, user: true },
       orderBy: { createdAt: 'desc' },
     });
+
+    const payments: any[] = await (this.prisma as any).payment.findMany({
+      include: { user: true },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const totalRevenue = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
     return {
       stats: {
@@ -210,6 +241,7 @@ export class AuthService implements OnModuleInit {
         totalAdmins: users.filter((u) => u.role === 'admin').length,
         totalTasks: tasks.length,
         completedTasks: tasks.filter((t) => t.status === 'completed').length,
+        totalRevenue,
       },
       users: users.map((u) => ({
         id: u.id,
@@ -218,11 +250,29 @@ export class AuthService implements OnModuleInit {
         role: u.role,
         createdAt: u.createdAt,
       })),
-      tasks,
+      tasks: tasks.map((t) => ({
+        id: t.id,
+        title: t.title,
+        description: t.description,
+        status: t.status,
+        createdAt: t.createdAt,
+        userId: t.userId,
+        userName: t.user?.name || 'Unknown User',
+        userEmail: t.user?.email || 'Unassigned',
+      })),
+      payments: payments.map((p) => ({
+        id: p.id,
+        amount: p.amount,
+        method: p.method,
+        description: p.description,
+        status: p.status,
+        createdAt: p.createdAt,
+        userName: p.user?.name || 'User',
+        userEmail: p.user?.email || '',
+      })),
     };
   }
 
-  // ADMIN ONLY: Change a user's role (user <-> admin)
   async updateUserRole(targetUserId: number, role: string) {
     const updated: any = await this.prisma.user.update({
       where: { id: targetUserId },
@@ -234,7 +284,6 @@ export class AuthService implements OnModuleInit {
     };
   }
 
-  // ADMIN ONLY: Delete a user account
   async deleteUser(targetUserId: number) {
     await this.prisma.user.delete({
       where: { id: targetUserId },

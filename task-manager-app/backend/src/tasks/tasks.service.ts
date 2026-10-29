@@ -1,24 +1,23 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 
 @Injectable()
 export class TasksService {
-  private readonly logger = new Logger(TasksService.name);
-
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createTaskDto: CreateTaskDto) {
-    const { title, description, status, categoryName } = createTaskDto;
-    this.logger.log(`Creating task in DB: ${title}`);
+  async create(createTaskDto: CreateTaskDto, userId?: number) {
+    const { title, description, status, categoryName } = createTaskDto as any;
 
     return this.prisma.task.create({
       data: {
         title,
         description,
         status: status || 'pending',
-        // Relational query: Connects to an existing category or creates a new one
+        ...(userId && {
+          user: { connect: { id: Number(userId) } },
+        }),
         ...(categoryName && {
           category: {
             connectOrCreate: {
@@ -28,45 +27,43 @@ export class TasksService {
           },
         }),
       },
-      include: { category: true }, // Returns the linked category in the response
+      include: { category: true, user: true },
     });
   }
 
-  async findAll() {
-    this.logger.log('Fetching all tasks with their categories from DB');
+  async findAll(user?: any) {
+    // Regular users see their own tasks; Admin sees all tasks
+    const whereClause =
+      user && user.role !== 'admin' ? { userId: Number(user.sub) } : {};
+
     return this.prisma.task.findMany({
-      include: { category: true },
+      where: whereClause,
+      include: { category: true, user: true },
       orderBy: { createdAt: 'desc' },
     });
   }
 
   async findOne(id: number) {
-    this.logger.log(`Fetching task ID ${id} from DB`);
     const task = await this.prisma.task.findUnique({
       where: { id },
-      include: { category: true },
+      include: { category: true, user: true },
     });
-
     if (!task) {
-      this.logger.warn(`Task ID ${id} not found in DB`);
       throw new NotFoundException(`Task with ID ${id} not found`);
     }
     return task;
   }
 
   async update(id: number, updateTaskDto: UpdateTaskDto) {
-    // Verify task exists first (Data Integrity check)
     await this.findOne(id);
-
-    const { title, description, status, categoryName } = updateTaskDto;
-    this.logger.log(`Updating task ID ${id} in DB`);
+    const { title, description, status, categoryName } = updateTaskDto as any;
 
     return this.prisma.task.update({
       where: { id },
       data: {
-        title,
-        description,
-        status,
+        ...(title !== undefined && { title }),
+        ...(description !== undefined && { description }),
+        ...(status !== undefined && { status }),
         ...(categoryName && {
           category: {
             connectOrCreate: {
@@ -76,15 +73,12 @@ export class TasksService {
           },
         }),
       },
-      include: { category: true },
+      include: { category: true, user: true },
     });
   }
 
   async remove(id: number) {
-    // Verify task exists before deleting
     await this.findOne(id);
-
-    this.logger.log(`Deleting task ID ${id} from DB`);
     return this.prisma.task.delete({
       where: { id },
     });

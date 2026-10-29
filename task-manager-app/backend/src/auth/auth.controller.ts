@@ -35,7 +35,6 @@ export class AuthController {
     return this.authService.login(loginDto);
   }
 
-  // Dedicated Admin Login Route
   @Post('admin/login')
   @HttpCode(HttpStatus.OK)
   adminLogin(@Body() loginDto: LoginDto) {
@@ -54,7 +53,23 @@ export class AuthController {
     return this.authService.updateProfile(req.user.sub, updateProfileDto);
   }
 
-  // ADMIN PORTAL ENDPOINTS (Protected by both AuthGuard + AdminGuard)
+  // USER PAYMENT ENDPOINTS
+  @UseGuards(AuthGuard)
+  @Post('payments')
+  createPayment(
+    @Req() req: any,
+    @Body() body: { amount: number; method?: string; description?: string },
+  ) {
+    return this.authService.createPayment(req.user.sub, body);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('payments')
+  getUserPayments(@Req() req: any) {
+    return this.authService.getUserPayments(req.user.sub);
+  }
+
+  // ADMIN PORTAL ENDPOINTS
   @UseGuards(AuthGuard, AdminGuard)
   @Get('admin/overview')
   getAdminOverview() {
